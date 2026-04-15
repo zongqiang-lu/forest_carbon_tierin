@@ -54,7 +54,7 @@ forest_carbon_tierin/
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourname/forest_carbon_tierin.git
+git clone https://github.com/zongqiang-lu/forest_carbon_tierin.git
 cd forest_carbon_tierin
 
 # 安装依赖
