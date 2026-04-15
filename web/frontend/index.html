@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>树智碳汇 - 时空动态监测平台</title>
+  <script src="/libs/vue.global.prod.js"></script>
+  <link rel="stylesheet" href="/libs/element-plus.css" />
+  <script src="/libs/element-plus.js"></script>
+  <link rel="stylesheet" href="/libs/leaflet.css" />
+  <script src="/libs/leaflet.js"></script>
+  <script src="/libs/echarts.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #app { height: 100%; font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #0a1628; }
+
+    /* ===== 顶栏 ===== */
+    .top-bar {
+      height: 56px; background: linear-gradient(135deg, #0d1b2a 0%, #1b3a2d 100%);
+      display: flex; align-items: center; padding: 0 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.5); z-index: 1000; position: relative;
+      border-bottom: 1px solid rgba(74,222,128,0.15);
+    }
+    .top-bar .logo { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+    .top-bar .logo span { color: #4ade80; }
+    .top-bar .nav { margin-left: 40px; display: flex; gap: 2px; }
+    .top-bar .nav-item {
+      color: rgba(255,255,255,0.65); padding: 8px 18px; border-radius: 6px;
+      cursor: pointer; font-size: 14px; transition: all 0.25s; position: relative;
+    }
+    .top-bar .nav-item:hover { background: rgba(74,222,128,0.08); color: rgba(255,255,255,0.9); }
+    .top-bar .nav-item.active {
+      background: rgba(74,222,128,0.15); color: #4ade80; font-weight: 600;
+    }
+    .top-bar .nav-item.active::after {
+      content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 20px; height: 2px; background: #4ade80; border-radius: 1px;
+    }
+
+    /* 主体 */
+    .main-content { height: calc(100% - 56px); overflow: hidden; }
+
+    /* ===== 首页 ===== */
+    .home-page { height: 100%; overflow-y: auto; background: #0a1628; color: #e2e8f0; }
+    .hero-section {
+      min-height: 460px; background: linear-gradient(135deg, #0d1b2a 0%, #1a3a2a 40%, #0f2027 100%);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      text-align: center; position: relative; overflow: hidden; padding: 60px 20px;
+    }
+    .hero-section::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 30% 80%, rgba(74,222,128,0.08) 0%, transparent 60%),
+                  radial-gradient(ellipse at 70% 20%, rgba(20,163,199,0.06) 0%, transparent 50%);
+    }
+    .hero-section::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 120px;
+      background: linear-gradient(transparent, #0a1628);
+    }
+    .hero-section h1 { font-size: 48px; color: #fff; margin-bottom: 16px; z-index: 1; font-weight: 700; }
+    .hero-section h1 span { color: #4ade80; }
+    .hero-section .subtitle { font-size: 18px; color: rgba(255,255,255,0.6); max-width: 680px; z-index: 1; line-height: 1.6; }
+    .hero-section .subtitle strong { color: #4ade80; }
+
+    /* 数据统计行 */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+      max-width: 1100px; margin: -50px auto 0; position: relative; z-index: 2; padding: 0 40px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #1e293b 0%, #1a2744 100%);
+      border-radius: 12px; padding: 22px 20px; text-align: center;
+      border: 1px solid rgba(74,222,128,0.12); transition: all 0.3s;
+    }
+    .stat-card:hover { transform: translateY(-3px); border-color: rgba(74,222,128,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .stat-card .stat-icon { font-size: 28px; margin-bottom: 8px; }
+    .stat-card .stat-value { font-size: 28px; font-weight: 700; color: #4ade80; }
+    .stat-card .stat-value .unit { font-size: 14px; color: #94a3b8; font-weight: 400; }
+    .stat-card .stat-label { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+
+    /* 亮点卡片 */
+    .highlights {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+      padding: 48px 60px 0; max-width: 1200px; margin: 0 auto;
+    }
+    .highlight-card {
+      background: linear-gradient(135deg, #1e293b, #162032);
+      border-radius: 14px; padding: 28px 22px; text-align: center;
+      border: 1px solid #334155; transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .highlight-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, transparent, #4ade80, transparent); opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .highlight-card:hover { transform: translateY(-6px); border-color: rgba(74,222,128,0.3); box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
+    .highlight-card:hover::before { opacity: 1; }
+    .highlight-card .icon { font-size: 40px; margin-bottom: 14px; display: block; }
+    .highlight-card h4 { color: #e2e8f0; margin-bottom: 8px; font-size: 16px; font-weight: 600; }
+    .highlight-card p { color: #94a3b8; font-size: 13px; line-height: 1.6; }
+
+    .section-block { max-width: 1200px; margin: 48px auto; padding: 0 60px; }
+    .section-block h2 { color: #4ade80; margin-bottom: 28px; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+    .section-block h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, #334155, transparent); }
+
+    /* 技术路线 */
+    .tech-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 10px 0; }
+    .flow-step {
+      background: linear-gradient(135deg, #1e293b, #1a2744); border: 1px solid rgba(74,222,128,0.25);
+      border-radius: 10px; padding: 14px 22px; color: #e2e8f0; font-size: 14px; text-align: center;
+      min-width: 100px; transition: all 0.3s; cursor: default;
+    }
+    .flow-step:hover { border-color: #4ade80; background: rgba(74,222,128,0.08); }
+    .flow-step .step-num { display: block; font-size: 11px; color: #4ade80; margin-bottom: 4px; font-weight: 600; }
+    .flow-arrow { color: #4ade80; font-size: 18px; opacity: 0.6; }
+
+    /* 研究区 */
+    .region-info { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .region-card {
+      background: linear-gradient(135deg, #1e293b, #162032); border-radius: 14px; padding: 28px;
+      border: 1px solid #334155; transition: all 0.3s;
+    }
+    .region-card:hover { border-color: rgba(74,222,128,0.3); }
+    .region-card h3 { color: #4ade80; margin-bottom: 12px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+    .region-card .region-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .region-card .region-stat { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; text-align: center; }
+    .region-card .region-stat .val { font-size: 18px; font-weight: 700; color: #4ade80; }
+    .region-card .region-stat .lbl { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .region-card p { color: #94a3b8; font-size: 14px; line-height: 1.7; }
+
+    /* ===== 地图页 ===== */
+    .map-page { height: 100%; display: flex; flex-direction: column; }
+    .map-toolbar {
+      min-height: 48px; background: #111d2e; display: flex; align-items: center;
+      padding: 6px 16px; gap: 4px 12px; border-bottom: 1px solid #1e293b;
+      flex-direction: column;
+    }
+    .toolbar-row {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      justify-content: center; flex-wrap: wrap;
+    }
+    .map-toolbar .el-radio-group { --el-radio-button-bg-color: #1e293b; --el-radio-button-text-color: #94a3b8; }
+    .map-toolbar .el-radio-button__inner { border-color: #334155 !important; }
+    .map-container { flex: 1; position: relative; }
+    .map-split { display: flex; height: 100%; }
+    .map-split .map-panel { flex: 1; position: relative; overflow: hidden; }
+    .map-split .split-handle {
+      width: 6px; background: linear-gradient(180deg, #4ade80, #22c55e); cursor: col-resize;
+      position: relative; z-index: 800; flex-shrink: 0;
+      box-shadow: 0 0 8px rgba(74,222,128,0.3);
+    }
+    #map-left, #map-right, #map-single { width: 100%; height: 100%; }
+    .map-panel .map-label {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      background: rgba(15,23,42,0.85); color: #e2e8f0; padding: 5px 18px; border-radius: 20px;
+      font-size: 13px; z-index: 700; pointer-events: none; border: 1px solid rgba(74,222,128,0.2);
+      backdrop-filter: blur(4px);
+    }
+
+    /* 图例 */
+    .legend-panel {
+      position: absolute; bottom: 34px; right: 12px; z-index: 700;
+      background: rgba(15,23,42,0.92); border-radius: 10px; padding: 14px 18px;
+      color: #e2e8f0; font-size: 13px; min-width: 160px;
+      backdrop-filter: blur(8px); border: 1px solid rgba(74,222,128,0.15);
+    }
+    .legend-panel h4 { margin-bottom: 10px; font-size: 14px; color: #4ade80; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .legend-color { width: 20px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+
+    /* 点查询 */
+    .query-panel {
+      position: absolute; top: 60px; right: 12px; z-index: 700;
+      background: rgba(15,23,42,0.96); border-radius: 12px; padding: 20px;
+      color: #e2e8f0; font-size: 13px; width: 320px; max-height: 440px;
+      overflow-y: auto; backdrop-filter: blur(10px); border: 1px solid rgba(74,222,128,0.15);
+      display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .query-panel.show { display: block; animation: slideIn 0.2s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    .query-panel h4 { color: #4ade80; margin-bottom: 12px; font-size: 15px; }
+    .query-panel .info-row { display: flex; justify-content: space-between; padding: 4px 0; }
+    .query-panel .info-row .label { color: #94a3b8; }
+    .query-panel .info-row .value { color: #f1f5f9; font-weight: 600; }
+    .query-panel .section-title { color: #4ade80; font-size: 12px; margin-top: 12px; margin-bottom: 6px; border-top: 1px solid #334155; padding-top: 10px; }
+    .query-panel .close-btn { position: absolute; top: 10px; right: 14px; cursor: pointer; color: #94a3b8; font-size: 18px; transition: color 0.2s; }
+    .query-panel .close-btn:hover { color: #f1f5f9; }
+
+    /* ===== 统计页 ===== */
+    .stats-page { height: 100%; overflow-y: auto; background: #0a1628; color: #e2e8f0; padding: 28px; }
+    .stats-page h2 { color: #4ade80; margin-bottom: 24px; font-size: 22px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; }
+    .chart-card {
+      background: linear-gradient(135deg, #1e293b, #162032); border-radius: 14px; padding: 22px;
+      border: 1px solid #334155; transition: border-color 0.3s;
+    }
+    .chart-card:hover { border-color: rgba(74,222,128,0.2); }
+    .chart-card h3 { color: #94a3b8; font-size: 14px; margin-bottom: 14px; font-weight: 500; }
+    .chart-card .chart-container { height: 320px; }
+
+    /* ===== 不确定性页 ===== */
+    .uncertainty-page { height: 100%; overflow-y: auto; background: #0a1628; color: #e2e8f0; padding: 28px; }
+    .uncertainty-page h2 { color: #4ade80; margin-bottom: 24px; font-size: 22px; }
+    .uncertainty-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .uncertainty-card {
+      background: linear-gradient(135deg, #1e293b, #162032); border-radius: 14px; padding: 24px;
+      border: 1px solid #334155; transition: border-color 0.3s;
+    }
+    .uncertainty-card:hover { border-color: rgba(74,222,128,0.2); }
+    .uncertainty-card h3 { color: #94a3b8; margin-bottom: 16px; font-size: 15px; }
+    .confidence-badge {
+      display: inline-block; padding: 3px 12px; border-radius: 12px;
+      font-size: 13px; font-weight: 600;
+    }
+    .confidence-high { background: rgba(39,174,96,0.2); color: #2ecc71; }
+    .confidence-mid { background: rgba(243,156,18,0.2); color: #f39c12; }
+    .confidence-low { background: rgba(231,76,60,0.2); color: #e74c3c; }
+
+    /* ===== 模型页 ===== */
+    .model-page { height: 100%; overflow-y: auto; background: #0a1628; color: #e2e8f0; padding: 28px; }
+    .model-page h2 { color: #4ade80; margin-bottom: 24px; font-size: 22px; }
+    .model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .model-card {
+      background: linear-gradient(135deg, #1e293b, #162032); border-radius: 14px; padding: 24px;
+      border: 1px solid #334155; transition: border-color 0.3s;
+    }
+    .model-card:hover { border-color: rgba(74,222,128,0.2); }
+    .model-card h3 { color: #94a3b8; margin-bottom: 16px; font-size: 15px; }
+    .model-card .chart-container { height: 340px; }
+    .param-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .param-table th { color: #4ade80; text-align: left; padding: 8px 12px; border-bottom: 1px solid #334155; font-weight: 500; }
+    .param-table td { padding: 8px 12px; border-bottom: 1px solid rgba(51,65,85,0.5); }
+    .param-table td:first-child { color: #94a3b8; }
+    .param-table td:last-child { color: #f1f5f9; font-weight: 600; }
+    .full-width { grid-column: 1 / -1; }
+
+    /* ===== 天地图审图号 ===== */
+    .map-approval {
+      position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+      z-index: 700; background: rgba(15,23,42,0.85); color: #94a3b8;
+      padding: 2px 12px; border-radius: 4px; font-size: 10px;
+      pointer-events: none; backdrop-filter: blur(4px); white-space: nowrap;
+    }
+
+    /* ===== Leaflet深色主题 ===== */
+    .leaflet-container { background: #0f172a; }
+    .leaflet-control-zoom a { background: #1e293b !important; color: #e2e8f0 !important; border-color: #334155 !important; }
+    .leaflet-control-attribution { background: rgba(15,23,42,0.8) !important; color: #64748b !important; font-size: 10px !important; }
+    .leaflet-control-attribution a { color: #4ade80 !important; }
+
+    /* ===== 自定义滚动条 ===== */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0a1628; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* 分隔符 */
+    .toolbar-divider { width: 1px; height: 24px; background: #334155; margin: 0 4px; flex-shrink: 0; }
+
+    /* 过渡动画 */
+    .page-fade-enter-active, .page-fade-leave-active { transition: opacity 0.2s ease; }
+    .page-fade-enter-from, .page-fade-leave-to { opacity: 0; }
+
+    /* 指标高亮 */
+    .metric-highlight { color: #4ade80; font-weight: 700; }
+    .metric-warn { color: #f39c12; font-weight: 700; }
+    .metric-low { color: #e74c3c; font-weight: 700; }
+
+    /* 变化图图例 */
+    .change-legend .legend-item { margin-bottom: 3px; }
+
+    /* 底部信息 */
+    .home-footer {
+      text-align: center; padding: 40px 0; color: #475569; font-size: 12px;
+      border-top: 1px solid #1e293b; margin-top: 60px;
+    }
+
+    /* ===== AI 助手 ===== */
+    .ai-fab {
+      position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+      width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #22c55e 0%, #0d7377 100%);
+      color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(74,222,128,0.35), 0 0 0 0 rgba(74,222,128,0.4);
+      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+      animation: aiPulse 2.5s ease-in-out infinite;
+    }
+    .ai-fab:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(74,222,128,0.5); }
+    .ai-fab.active { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); animation: none; box-shadow: 0 4px 20px rgba(239,68,68,0.35); }
+    @keyframes aiPulse {
+      0%, 100% { box-shadow: 0 4px 20px rgba(74,222,128,0.35), 0 0 0 0 rgba(74,222,128,0.4); }
+      50% { box-shadow: 0 4px 20px rgba(74,222,128,0.35), 0 0 0 12px rgba(74,222,128,0); }
+    }
+
+    .ai-panel {
+      position: fixed; bottom: 96px; right: 28px; z-index: 9998;
+      width: 420px; height: 560px; max-height: calc(100vh - 130px);
+      background: linear-gradient(160deg, #0d1b2a 0%, #1b2838 100%);
+      border: 1px solid rgba(74,222,128,0.2); border-radius: 16px;
+      display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(74,222,128,0.05);
+      transform: scale(0.9) translateY(20px); opacity: 0; pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    .ai-panel.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: auto; }
+
+    .ai-header {
+      padding: 16px 20px; display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid rgba(74,222,128,0.12);
+      background: rgba(0,0,0,0.2);
+    }
+    .ai-header .ai-avatar { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #22c55e, #0d7377); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .ai-header .ai-title { color: #e2e8f0; font-size: 15px; font-weight: 600; }
+    .ai-header .ai-subtitle { color: #64748b; font-size: 11px; }
+    .ai-header .ai-badge { margin-left: auto; background: rgba(74,222,128,0.15); color: #4ade80; font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+
+    .ai-messages {
+      flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .ai-messages::-webkit-scrollbar { width: 4px; }
+    .ai-messages::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+
+    .ai-msg { max-width: 88%; animation: msgIn 0.25s ease; }
+    @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .ai-msg.user { align-self: flex-end; }
+    .ai-msg.assistant { align-self: flex-start; }
+
+    .ai-msg .msg-bubble {
+      padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.65;
+      word-break: break-word;
+    }
+    .ai-msg.user .msg-bubble {
+      background: linear-gradient(135deg, #22c55e, #0d7377); color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .ai-msg.assistant .msg-bubble {
+      background: rgba(30,41,59,0.8); color: #e2e8f0;
+      border: 1px solid rgba(74,222,128,0.08); border-bottom-left-radius: 4px;
+    }
+    .ai-msg.assistant .msg-bubble p { margin: 0 0 8px 0; }
+    .ai-msg.assistant .msg-bubble p:last-child { margin-bottom: 0; }
+    .ai-msg.assistant .msg-bubble ul, .ai-msg.assistant .msg-bubble ol { margin: 4px 0; padding-left: 20px; }
+    .ai-msg.assistant .msg-bubble li { margin: 2px 0; }
+    .ai-msg.assistant .msg-bubble code {
+      background: rgba(0,0,0,0.3); color: #4ade80; padding: 1px 6px; border-radius: 4px; font-size: 12px;
+    }
+    .ai-msg.assistant .msg-bubble pre {
+      background: rgba(0,0,0,0.35); border-radius: 8px; padding: 10px; overflow-x: auto; margin: 8px 0;
+    }
+    .ai-msg.assistant .msg-bubble pre code { background: none; padding: 0; color: #e2e8f0; }
+    .ai-msg.assistant .msg-bubble table { border-collapse: collapse; margin: 8px 0; font-size: 12px; width: 100%; }
+    .ai-msg.assistant .msg-bubble th { background: rgba(74,222,128,0.1); color: #4ade80; padding: 6px 10px; text-align: left; border: 1px solid #334155; }
+    .ai-msg.assistant .msg-bubble td { padding: 5px 10px; border: 1px solid #334155; color: #cbd5e1; }
+    .ai-msg.assistant .msg-bubble strong { color: #4ade80; }
+    .ai-msg.assistant .msg-bubble h3, .ai-msg.assistant .msg-bubble h4 { color: #4ade80; margin: 10px 0 6px; font-size: 14px; }
+    .ai-msg.assistant .msg-bubble blockquote { border-left: 3px solid #4ade80; padding-left: 10px; color: #94a3b8; margin: 6px 0; }
+
+    .ai-typing { display: flex; gap: 4px; padding: 8px 14px; }
+    .ai-typing span { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; animation: typingBounce 1.2s infinite; }
+    .ai-typing span:nth-child(2) { animation-delay: 0.2s; }
+    .ai-typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce { 0%,60%,100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-4px); } }
+
+    .ai-input-area {
+      padding: 12px 16px; border-top: 1px solid rgba(74,222,128,0.12);
+      display: flex; gap: 8px; align-items: flex-end; background: rgba(0,0,0,0.15);
+    }
+    .ai-input-area textarea {
+      flex: 1; background: rgba(30,41,59,0.6); border: 1px solid #334155; border-radius: 10px;
+      color: #e2e8f0; padding: 8px 12px; font-size: 13px; resize: none; outline: none;
+      font-family: inherit; line-height: 1.5; max-height: 80px;
+      transition: border-color 0.2s;
+    }
+    .ai-input-area textarea:focus { border-color: rgba(74,222,128,0.5); }
+    .ai-input-area textarea::placeholder { color: #64748b; }
+    .ai-send-btn {
+      width: 36px; height: 36px; border-radius: 10px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #22c55e, #0d7377); color: #fff; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .ai-send-btn:hover { transform: scale(1.05); box-shadow: 0 2px 12px rgba(74,222,128,0.3); }
+    .ai-send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .ai-welcome { text-align: center; padding: 40px 24px; color: #64748b; }
+    .ai-welcome .ai-welcome-icon { font-size: 48px; margin-bottom: 12px; }
+    .ai-welcome h4 { color: #e2e8f0; font-size: 16px; margin-bottom: 8px; }
+    .ai-welcome p { font-size: 13px; line-height: 1.6; margin-bottom: 16px; }
+    .ai-quick-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .ai-quick-btn {
+      background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2);
+      color: #4ade80; padding: 6px 14px; border-radius: 20px; font-size: 12px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .ai-quick-btn:hover { background: rgba(74,222,128,0.15); border-color: rgba(74,222,128,0.4); }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- 顶栏 -->
+  <div class="top-bar">
+    <div class="logo">🌿 树智碳汇</div>
+    <div class="nav">
+      <div class="nav-item" :class="{active: currentPage==='home'}" @click="currentPage='home'">项目概览</div>
+      <div class="nav-item" :class="{active: currentPage==='map'}" @click="switchToMap">时空监测</div>
+      <div class="nav-item" :class="{active: currentPage==='stats'}" @click="switchToStats">统计分析</div>
+      <div class="nav-item" :class="{active: currentPage==='uncertainty'}" @click="currentPage='uncertainty'">不确定性</div>
+      <div class="nav-item" :class="{active: currentPage==='model'}" @click="switchToModel">模型详情</div>
+    </div>
+  </div>
+
+  <!-- ===== 首页 ===== -->
+  <div class="main-content" v-if="currentPage==='home'">
+    <div class="home-page">
+      <div class="hero-section">
+        <h1>树智碳汇</h1>
+        <p class="subtitle">基于<strong>多源遥感数据</strong>与<strong>分层二分类器</strong>的森林碳汇时空动态监测平台<br/>覆盖云南宁洱县与双柏县，实现 2019-2025 年碳汇变化追踪</p>
+      </div>
+
+      <div class="stats-row" v-if="overviewStats.totalForestArea">
+        <div class="stat-card">
+          <div class="stat-icon">🌲</div>
+          <div class="stat-value">{{ (overviewStats.totalForestArea).toFixed(0) }} <span class="unit">km²</span></div>
+          <div class="stat-label">监测森林总面积</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📅</div>
+          <div class="stat-value">4 <span class="unit">年</span></div>
+          <div class="stat-label">多期时空监测 (2019/2023-2025)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🗺️</div>
+          <div class="stat-value">2 <span class="unit">县</span></div>
+          <div class="stat-label">云南典型林区研究区</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🛰️</div>
+          <div class="stat-value">28 <span class="unit">维</span></div>
+          <div class="stat-label">多源融合特征空间</div>
+        </div>
+      </div>
+
+      <div class="highlights">
+        <div class="highlight-card">
+          <div class="icon">🛰️</div>
+          <h4>多源数据融合</h4>
+          <p>Landsat光谱 + 植被指数 + DEM地形因子，28维特征全面刻画碳汇空间格局</p>
+        </div>
+        <div class="highlight-card">
+          <div class="icon">📊</div>
+          <h4>时空动态监测</h4>
+          <p>2019年基准训练+2023-2025年碳汇变化追踪，精准捕捉碳汇时空演变动态</p>
+        </div>
+        <div class="highlight-card">
+          <div class="icon">⚡</div>
+          <h4>快速低成本</h4>
+          <p>相比传统样地调查，效率提升百倍，实现大范围快速碳汇制图</p>
+        </div>
+        <div class="highlight-card">
+          <div class="icon">🌲</div>
+          <h4>林业应用导向</h4>
+          <p>为森林经营、碳汇交易提供决策支持，服务国家双碳战略目标</p>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h2>🔬 技术路线</h2>
+        <div class="tech-flow">
+          <div class="flow-step"><span class="step-num">STEP 1</span>Landsat影像</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="step-num">STEP 2</span>DEM地形数据</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="step-num">STEP 3</span>28维特征工程</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="step-num">STEP 4</span>PKU-AGB分级标签</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="step-num">STEP 5</span>分层分类器</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="step-num">STEP 6</span>碳汇分级预测</div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h2>🗺️ 研究区概况</h2>
+        <div class="region-info">
+          <div class="region-card">
+            <h3>📍 宁洱哈尼族彝族自治县</h3>
+            <p>位于云南省普洱市，地处横断山脉南段，以山地地形为主。森林资源丰富，是云南省重要的林业县。属亚热带季风气候，植被以常绿阔叶林和思茅松林为主。</p>
+            <div class="region-stats" v-if="allStats.ninger && allStats.ninger.length">
+              <div class="region-stat">
+                <div class="val">{{ allStats.ninger[0].total_forest_area_km2.toFixed(0) }}</div>
+                <div class="lbl">森林面积 km²</div>
+              </div>
+              <div class="region-stat">
+                <div class="val">{{ allStats.ninger[0].class_stats.Level3.percentage.toFixed(1) }}%</div>
+                <div class="lbl">高碳密度占比</div>
+              </div>
+              <div class="region-stat">
+                <div class="val">{{ ((modelMetrics.ninger?.cv_oa_mean || 0) * 100).toFixed(1) }}%</div>
+                <div class="lbl">模型OA</div>
+              </div>
+            </div>
+          </div>
+          <div class="region-card">
+            <h3>📍 双柏县</h3>
+            <p>位于云南省楚雄彝族自治州，地处哀牢山国家级自然保护区腹地。森林覆盖率高，生物多样性丰富。属亚热带高原季风气候，以云南松林和常绿阔叶林为主。</p>
+            <div class="region-stats" v-if="allStats.shuangbai && allStats.shuangbai.length">
+              <div class="region-stat">
+                <div class="val">{{ allStats.shuangbai[0].total_forest_area_km2.toFixed(0) }}</div>
+                <div class="lbl">森林面积 km²</div>
+              </div>
+              <div class="region-stat">
+                <div class="val">{{ allStats.shuangbai[0].class_stats.Level3.percentage.toFixed(1) }}%</div>
+                <div class="lbl">高碳密度占比</div>
+              </div>
+              <div class="region-stat">
+                <div class="val">{{ ((modelMetrics.shuangbai?.cv_oa_mean || 0) * 100).toFixed(1) }}%</div>
+                <div class="lbl">模型OA</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-footer">
+        树智碳汇 | 大学生计算机设计大赛 AI应用赛道 | 数据来源：Landsat-8/9, SRTM DEM, PKU-AGB | 审图号：GS（2025）1508号
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 地图页 ===== -->
+  <div class="main-content" v-if="currentPage==='map'">
+    <div class="map-page">
+      <div class="map-toolbar">
+        <div class="toolbar-row">
+          <el-radio-group v-model="currentRegion" size="small" @change="onRegionChange">
+            <el-radio-button label="ninger">宁洱县</el-radio-button>
+            <el-radio-button label="shuangbai">双柏县</el-radio-button>
+          </el-radio-group>
+          <el-radio-group v-model="currentYear" size="small" @change="onYearChange">
+            <el-radio-button :label="2019">2019</el-radio-button>
+            <el-radio-button :label="2023">2023</el-radio-button>
+            <el-radio-button :label="2024">2024</el-radio-button>
+            <el-radio-button :label="2025">2025</el-radio-button>
+          </el-radio-group>
+          <div class="toolbar-divider"></div>
+          <el-checkbox v-model="splitMode" label="分屏对比" size="small" style="color:#94a3b8;" @change="onSplitChange" />
+          <el-select v-model="splitYear2" size="small" style="width:90px" v-if="splitMode" @change="updateRightMap">
+            <el-option :value="2019" label="2019" />
+            <el-option :value="2023" label="2023" />
+            <el-option :value="2024" label="2024" />
+            <el-option :value="2025" label="2025" />
+          </el-select>
+          <el-checkbox v-model="showBoundary" label="边界" size="small" style="color:#94a3b8;" @change="toggleBoundary" />
+        </div>
+        <div class="toolbar-row">
+          <span style="color:#64748b;font-size:12px;margin-right:4px;">图层:</span>
+          <el-radio-group v-model="mapLayer" size="small" @change="onLayerChange">
+            <el-radio-button label="classification">碳汇分级</el-radio-button>
+            <el-radio-button label="change">变化检测</el-radio-button>
+            <el-radio-button label="confidence">置信度</el-radio-button>
+          </el-radio-group>
+          <div class="toolbar-divider"></div>
+          <span style="color:#64748b;font-size:12px;margin-right:4px;">底图:</span>
+          <el-radio-group v-model="baseMapType" size="small" @change="onBaseMapChange">
+            <el-radio-button label="satellite">卫星</el-radio-button>
+            <el-radio-button label="vector">矢量</el-radio-button>
+            <el-radio-button label="dark">暗色</el-radio-button>
+          </el-radio-group>
+        </div>
+      </div>
+      <div class="map-container">
+        <!-- 单地图模式 -->
+        <div v-if="!splitMode" id="map-single" style="width:100%;height:100%;"></div>
+        <!-- 分屏模式 -->
+        <div v-else class="map-split">
+          <div class="map-panel">
+            <div class="map-label">{{ currentYear }}年 碳汇分级</div>
+            <div id="map-left"></div>
+          </div>
+          <div class="split-handle"></div>
+          <div class="map-panel">
+            <div class="map-label">{{ splitYear2 }}年 碳汇分级</div>
+            <div id="map-right"></div>
+          </div>
+        </div>
+
+        <!-- 审图号 -->
+        <div class="map-approval">审图号：GS（2025）1508号 | 底图来源：天地图</div>
+
+        <!-- 图例 -->
+        <div class="legend-panel" v-if="mapLayer==='classification'">
+          <h4>碳汇等级</h4>
+          <div class="legend-item"><div class="legend-color" style="background:#e74c3c;"></div> 低碳密度 (Low)</div>
+          <div class="legend-item"><div class="legend-color" style="background:#f39c12;"></div> 中碳密度 (Medium)</div>
+          <div class="legend-item"><div class="legend-color" style="background:#27ae60;"></div> 高碳密度 (High)</div>
+        </div>
+        <div class="legend-panel change-legend" v-else-if="mapLayer==='change'">
+          <h4>碳汇变化</h4>
+          <div class="legend-item"><div class="legend-color" style="background:#2ecc71;"></div> 等级提升</div>
+          <div class="legend-item"><div class="legend-color" style="background:#bdc3c7;"></div> 保持不变</div>
+          <div class="legend-item"><div class="legend-color" style="background:#e74c3c;"></div> 等级下降</div>
+        </div>
+        <div class="legend-panel" v-else-if="mapLayer==='confidence'">
+          <h4>预测置信度</h4>
+          <div class="legend-item"><div class="legend-color" style="background:#27ae60;"></div> 高置信度 (≥80%)</div>
+          <div class="legend-item"><div class="legend-color" style="background:#f39c12;"></div> 中置信度 (60%-80%)</div>
+          <div class="legend-item"><div class="legend-color" style="background:#e74c3c;"></div> 低置信度 (&lt;60%)</div>
+        </div>
+
+        <!-- 点查询面板 -->
+        <div class="query-panel" :class="{show: queryResult}">
+          <span class="close-btn" @click="queryResult=null">&times;</span>
+          <template v-if="queryResult">
+            <h4>📍 点查询结果</h4>
+            <div class="info-row"><span class="label">经度</span><span class="value">{{ queryResult.lng.toFixed(4) }}</span></div>
+            <div class="info-row"><span class="label">纬度</span><span class="value">{{ queryResult.lat.toFixed(4) }}</span></div>
+            <div v-if="queryResult.carbon_class" class="info-row">
+              <span class="label">碳汇等级</span>
+              <span class="value" :style="{color: classColor(queryResult.carbon_class)}">{{ classLabel(queryResult.carbon_class) }}</span>
+            </div>
+            <div v-if="queryResult.confidence" class="info-row">
+              <span class="label">预测置信度</span>
+              <span class="value" :class="queryResult.confidence>=0.8?'metric-highlight':queryResult.confidence>=0.6?'metric-warn':'metric-low'">{{ (queryResult.confidence*100).toFixed(1) }}%</span>
+            </div>
+            <div class="section-title" v-if="Object.keys(queryResult.features).length">遥感特征值</div>
+            <div v-for="(v,k) in queryResult.features" :key="k" class="info-row">
+              <span class="label">{{ featureDisplayName(k) }}</span><span class="value">{{ v }}</span>
+            </div>
+            <div class="section-title" v-if="Object.keys(queryResult.multi_year).length">多年碳汇等级对比</div>
+            <div v-for="(v,k) in queryResult.multi_year" :key="k" class="info-row">
+              <span class="label">{{ k }}年</span>
+              <span class="value" :style="{color: v ? classColor(v) : '#64748b'}">{{ v ? classLabel(v) : '非森林' }}</span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 统计页 ===== -->
+  <div class="main-content" v-if="currentPage==='stats'">
+    <div class="stats-page">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <h2 style="margin-bottom:0;">📊 统计分析</h2>
+        <div style="display:flex;gap:12px;align-items:center;">
+          <el-radio-group v-model="statsRegion" size="small" @change="initCharts">
+            <el-radio-button label="ninger">宁洱县</el-radio-button>
+            <el-radio-button label="shuangbai">双柏县</el-radio-button>
+          </el-radio-group>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="chart-card"><h3>碳汇等级面积分布</h3><div id="chart-pie" class="chart-container"></div></div>
+        <div class="chart-card"><h3>各等级面积年度对比</h3><div id="chart-bar" class="chart-container"></div></div>
+        <div class="chart-card"><h3>碳汇面积变化趋势</h3><div id="chart-trend" class="chart-container"></div></div>
+        <div class="chart-card"><h3>特征重要性排序</h3><div id="chart-features" class="chart-container"></div></div>
+        <div class="chart-card full-width" style="grid-column:1/-1;"><h3>双研究区碳汇等级对比</h3><div id="chart-compare" class="chart-container"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 不确定性页 ===== -->
+  <div class="main-content" v-if="currentPage==='uncertainty'">
+    <div class="uncertainty-page">
+      <h2>🔍 不确定性分析</h2>
+      <p style="color:#94a3b8;margin-bottom:28px;max-width:860px;line-height:1.9;font-size:14px;">
+        本项目基于<strong style="color:#f1f5f9;">PKU-AGB</strong>（北京大学森林地上生物量密度数据集，2019年）作为训练标签。PKU-AGB作为目前公开的全国性森林生物量数据集，虽具有较高参考价值，
+        但仍存在固有误差。我们主动展示模型不确定性，体现科学严谨性，并明确未来改进方向。
+      </p>
+      <div class="uncertainty-grid">
+        <div class="uncertainty-card" v-for="region in ['ninger','shuangbai']" :key="region">
+          <h3>{{ region==='ninger' ? '宁洱县' : '双柏县' }} 模型评估</h3>
+          <div v-if="modelMetrics[region]">
+            <div class="info-row" style="margin-bottom:10px;">
+              <span style="color:#94a3b8;">交叉验证 OA</span>
+              <span :class="(modelMetrics[region].cv_oa_mean||0)>=0.5?'metric-highlight':'metric-warn'" style="font-size:20px;">{{ ((modelMetrics[region].cv_oa_mean||0)*100).toFixed(1) }}%</span>
+            </div>
+            <div class="info-row" style="margin-bottom:10px;">
+              <span style="color:#94a3b8;">验证集 OA</span>
+              <span style="color:#f1f5f9;font-weight:700;">{{ (modelMetrics[region].val_oa*100).toFixed(1) }}%</span>
+            </div>
+            <div class="info-row" style="margin-bottom:10px;">
+              <span style="color:#94a3b8;">Kappa系数</span>
+              <span :class="modelMetrics[region].val_kappa>=0.4?'metric-highlight':modelMetrics[region].val_kappa>=0.2?'metric-warn':'metric-low'">{{ modelMetrics[region].val_kappa.toFixed(3) }}</span>
+            </div>
+            <div style="margin-top:16px;">
+              <div style="color:#94a3b8;font-size:13px;margin-bottom:8px;">各等级制图精度 (PA)</div>
+              <div v-for="(v,k) in modelMetrics[region].pa_per_class" :key="k" class="info-row" style="margin-bottom:4px;">
+                <span style="color:#94a3b8;">{{ k === 'Level1' ? '低碳密度' : k === 'Level2' ? '中碳密度' : '高碳密度' }}</span>
+                <span :class="v>0.5?'metric-highlight':'metric-low'">{{ (v*100).toFixed(1) }}%</span>
+              </div>
+            </div>
+            <div style="margin-top:16px;">
+              <div style="color:#94a3b8;font-size:13px;margin-bottom:8px;">各等级用户精度 (UA)</div>
+              <div v-for="(v,k) in modelMetrics[region].ua_per_class" :key="k" class="info-row" style="margin-bottom:4px;">
+                <span style="color:#94a3b8;">{{ k === 'Level1' ? '低碳密度' : k === 'Level2' ? '中碳密度' : '高碳密度' }}</span>
+                <span :class="v>0.5?'metric-highlight':'metric-warn'">{{ (v*100).toFixed(1) }}%</span>
+              </div>
+            </div>
+            <div style="margin-top:16px;">
+              <span class="confidence-badge" :class="confidenceBadgeClass(region)">
+                平均置信度 {{ confidenceStats[region] ? (confidenceStats[region].mean_confidence*100).toFixed(1)+'%' : 'N/A' }}
+              </span>
+              <span class="confidence-badge confidence-high" style="margin-left:8px;" v-if="confidenceStats[region]">
+                高置信度 {{ confidenceStats[region].high_pct.toFixed(1) }}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:28px;">
+        <div class="uncertainty-card">
+          <h3>🎯 误差来源分析</h3>
+          <div style="color:#cbd5e1;line-height:2;font-size:14px;">
+            <p><strong style="color:#e74c3c;">1. PKU-AGB数据集固有误差</strong>：PKU-AGB基于遥感反演，在陡坡山区、森林-农田交错带精度显著下降</p>
+            <p><strong style="color:#f39c12;">2. 混合像元问题</strong>：30m分辨率下，像元内常包含多种地物，导致特征信号混杂</p>
+            <p><strong style="color:#f39c12;">3. 地形阴影影响</strong>：山区地形阴影导致光谱值失真，影响植被指数计算</p>
+            <p><strong style="color:#2ecc71;">4. 中等级分类困难</strong>：低碳密度与中碳密度的光谱差异较小，是主要误分来源</p>
+          </div>
+        </div>
+        <div class="uncertainty-card" style="margin-top:20px;">
+          <h3>🚀 未来改进方向</h3>
+          <div style="color:#cbd5e1;line-height:2;font-size:14px;">
+            <p>✅ 融合 Sentinel-2 更高分辨率数据（10m），减少混合像元影响</p>
+            <p>✅ 引入 GEDI 激光雷达数据，提供更准确的垂直结构信息</p>
+            <p>✅ 收集实地样地数据，替代PKU-AGB作为训练标签</p>
+            <p>✅ 采用深度学习模型（如U-Net），挖掘更深层空间特征</p>
+            <p>✅ 增加时序特征，利用多年遥感影像的时间变化信息</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 模型详情页 ===== -->
+  <div class="main-content" v-if="currentPage==='model'">
+    <div class="model-page">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <h2 style="margin-bottom:0;">🤖 模型详情</h2>
+        <el-radio-group v-model="modelRegion" size="small" @change="initModelCharts">
+          <el-radio-button label="ninger">宁洱县</el-radio-button>
+          <el-radio-button label="shuangbai">双柏县</el-radio-button>
+        </el-radio-group>
+      </div>
+      <div class="model-grid">
+        <!-- 模型参数 -->
+        <div class="model-card">
+          <h3>📋 模型参数配置</h3>
+          <table class="param-table" v-if="modelMetrics[modelRegion]">
+            <tr><th>参数</th><th>值</th></tr>
+            <tr><td>模型类型</td><td>{{ modelMetrics[modelRegion].model_type }}</td></tr>
+            <tr><td>特征数量</td><td>{{ modelMetrics[modelRegion].n_features }}</td></tr>
+            <tr><td>分类数</td><td>{{ modelMetrics[modelRegion].n_classes }}</td></tr>
+            <tr><td>训练样本数</td><td>{{ modelMetrics[modelRegion].n_train?.toLocaleString() }}</td></tr>
+            <tr><td>验证样本数</td><td>{{ modelMetrics[modelRegion].n_val?.toLocaleString() }}</td></tr>
+            <tr><td>n_estimators</td><td>{{ modelMetrics[modelRegion].best_params?.n_estimators }}</td></tr>
+            <tr><td>max_depth</td><td>{{ modelMetrics[modelRegion].best_params?.max_depth }}</td></tr>
+            <tr><td>min_samples_split</td><td>{{ modelMetrics[modelRegion].best_params?.min_samples_split }}</td></tr>
+            <tr><td>min_samples_leaf</td><td>{{ modelMetrics[modelRegion].best_params?.min_samples_leaf }}</td></tr>
+            <tr><td>max_features</td><td>{{ modelMetrics[modelRegion].best_params?.max_features }}</td></tr>
+            <tr><td>CV折数</td><td>{{ modelMetrics[modelRegion].cv_folds }}</td></tr>
+          </table>
+        </div>
+
+        <!-- 特征重要性 -->
+        <div class="model-card">
+          <h3>📊 特征重要性排序</h3>
+          <div id="model-feature-chart" class="chart-container"></div>
+        </div>
+
+        <!-- 混淆矩阵 -->
+        <div class="model-card">
+          <h3>🔢 混淆矩阵</h3>
+          <div id="model-confusion-chart" class="chart-container"></div>
+        </div>
+
+        <!-- CV折线图 -->
+        <div class="model-card">
+          <h3>📈 交叉验证精度分布</h3>
+          <div id="model-cv-chart" class="chart-container"></div>
+        </div>
+
+        <!-- 选用特征列表 -->
+        <div class="model-card full-width" style="grid-column:1/-1;" v-if="modelMetrics[modelRegion]">
+          <h3>🔬 选用特征及类别</h3>
+          <div style="margin-bottom:12px;">
+            <span style="color:#94a3b8;font-size:13px;">分类类别：</span>
+            <span v-for="(c,i) in (modelMetrics[modelRegion].class_names || ['低碳密度','中碳密度','高碳密度'])" :key="'c'+i"
+              style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#60a5fa;padding:4px 12px;border-radius:16px;font-size:12px;margin-left:6px;">
+              {{ c }}
+            </span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <span v-for="f in (Array.isArray(modelMetrics[modelRegion].selected_features) ? modelMetrics[modelRegion].selected_features : [])" :key="f"
+              style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);color:#4ade80;padding:5px 12px;border-radius:16px;font-size:12px;">
+              {{ featureDisplayName(f) }}
+            </span>
+          </div>
+          <div v-if="!Array.isArray(modelMetrics[modelRegion].selected_features) || modelMetrics[modelRegion].selected_features.length===0"
+            style="color:#64748b;font-size:13px;margin-top:8px;">
+            使用全部 {{ modelMetrics[modelRegion].n_features || 28 }} 个特征
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 助手浮动按钮 -->
+  <button class="ai-fab" :class="{active: aiPanelOpen}" @click="aiPanelOpen = !aiPanelOpen" title="AI 智能助手">
+    <span v-if="!aiPanelOpen">🤖</span>
+    <span v-else>✕</span>
+  </button>
+
+  <!-- AI 聊天面板 -->
+  <div class="ai-panel" :class="{open: aiPanelOpen}">
+    <div class="ai-header">
+      <div class="ai-avatar">🌲</div>
+      <div>
+        <div class="ai-title">碳汇 AI 助手</div>
+        <div class="ai-subtitle">基于 DeepSeek 大模型</div>
+      </div>
+      <span class="ai-badge">在线</span>
+    </div>
+
+    <div class="ai-messages" ref="aiMessagesRef">
+      <!-- 欢迎界面 -->
+      <div class="ai-welcome" v-if="aiMessages.length === 0">
+        <div class="ai-welcome-icon">🌿</div>
+        <h4>你好，我是树智碳汇 AI 助手</h4>
+        <p>我可以帮你解读碳汇数据、分析变化趋势、解释模型原理，或回答碳汇领域专业问题</p>
+        <div class="ai-quick-actions">
+          <button class="ai-quick-btn" @click="aiSendQuick('宁洱县和双柏县的碳汇等级分布有什么差异？')">📊 碳汇等级对比</button>
+          <button class="ai-quick-btn" @click="aiSendQuick('解释一下随机森林模型在本项目中的应用')">🤖 模型原理解释</button>
+          <button class="ai-quick-btn" @click="aiSendQuick('碳汇变化检测的趋势如何？')">📈 变化趋势分析</button>
+          <button class="ai-quick-btn" @click="aiSendQuick('什么是PKU-AGB数据集？它有什么局限性？')">🔬 PKU-AGB 介绍</button>
+        </div>
+      </div>
+
+      <!-- 消息列表 -->
+      <div v-for="(msg, idx) in aiMessages" :key="idx" class="ai-msg" :class="msg.role">
+        <div class="msg-bubble" v-html="msg.rendered"></div>
+      </div>
+
+      <!-- 打字指示器 -->
+      <div v-if="aiStreaming" class="ai-msg assistant">
+        <div class="ai-typing"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <div class="ai-input-area">
+      <textarea
+        v-model="aiInput"
+        @keydown.enter.exact="aiSend"
+        placeholder="输入你的问题..."
+        rows="1"
+        :disabled="aiStreaming"
+      ></textarea>
+      <button class="ai-send-btn" @click="aiSend" :disabled="aiStreaming || !aiInput.trim()">
+        ➤
+      </button>
+    </div>
+  </div>
+
+<script>
+const { createApp, ref, reactive, onMounted, nextTick, watch, computed } = Vue;
+const API_BASE = 'http://localhost:8000';
+
+const app = createApp({
+  setup() {
+    const currentPage = ref('home');
+    const currentRegion = ref('ninger');
+    const currentYear = ref(2019);
+    const splitMode = ref(false);
+    const splitYear2 = ref(2023);
+    const mapLayer = ref('classification');
+    const showBoundary = ref(true);
+    const statsRegion = ref('ninger');
+    const modelRegion = ref('ninger');
+    const queryResult = ref(null);
+    const baseMapType = ref('satellite');
+
+    // AI 助手状态
+    const aiPanelOpen = ref(false);
+    const aiMessages = ref([]);
+    const aiInput = ref('');
+    const aiStreaming = ref(false);
+    const aiMessagesRef = ref(null);
+
+    let mapLeft = null, mapRight = null, mapSingle = null;
+    let overlayLeft = null, overlayRight = null, overlaySingle = null;
+    let boundaryLayer = null;
+    const DARK_BASE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    let allStats = reactive({});
+    let allChanges = reactive({});
+    const modelMetrics = reactive({});
+    const featureImportance = reactive({});
+    const confidenceStats = reactive({});
+
+    // 特征名称映射
+    const FEATURE_NAMES = {
+      'B1': 'Landsat B1 (海岸/气溶胶)', 'B2': 'Landsat B2 (蓝)', 'B3': 'Landsat B3 (绿)', 'B4': 'Landsat B4 (红)',
+      'B5': 'Landsat B5 (近红)', 'B6': 'Landsat B6 (SWIR1)', 'B7': 'Landsat B7 (SWIR2)',
+      'NDVI': '归一化植被指数', 'EVI': '增强植被指数', 'SAVI': '土壤调节植被指数',
+      'MSAVI': '改进土壤调节植被指数', 'NDMI': '归一化水分指数', 'NDWI': '归一化水体指数',
+      'NBR': '归一化燃烧比', 'SR_B5B4': '简单比值(B5/B4)', 'SR_B6B5': '简单比值(B6/B5)',
+      'SR_B7B5': '简单比值(B7/B5)', 'TCB': '缨帽亮度', 'TCG': '缨帽绿度', 'TCW': '缨帽湿度',
+      'elevation': '海拔', 'slope': '坡度', 'aspect': '坡向', 'twi': '地形湿度指数',
+      'pcurv': '剖面曲率', 'ccurv': '平面曲率', 'slope_pos': '坡位', 'roughness': '粗糙度'
+    };
+    const featureDisplayName = (name) => FEATURE_NAMES[name] || name;
+
+    const classColor = (cls) => ({1:'#e74c3c', 2:'#f39c12', 3:'#27ae60'}[cls] || '#64748b');
+    const classLabel = (cls) => ({1:'低碳密度', 2:'中碳密度', 3:'高碳密度'}[cls] || '未知');
+
+    const confidenceBadgeClass = (region) => {
+      const s = confidenceStats[region];
+      if (!s) return 'confidence-mid';
+      if (s.mean_confidence >= 0.8) return 'confidence-high';
+      if (s.mean_confidence >= 0.6) return 'confidence-mid';
+      return 'confidence-low';
+    };
+
+    // 首页统计
+    const overviewStats = computed(() => {
+      let totalForestArea = 0;
+      if (allStats.ninger && allStats.ninger.length) totalForestArea += allStats.ninger[0].total_forest_area_km2;
+      if (allStats.shuangbai && allStats.shuangbai.length) totalForestArea += allStats.shuangbai[0].total_forest_area_km2;
+      return { totalForestArea };
+    });
+
+    async function fetchData() {
+      try {
+        const [statsRes, changeRes] = await Promise.all([
+          fetch(`${API_BASE}/api/stats/overview`).then(r => r.json()),
+          fetch(`${API_BASE}/api/stats/changes`).then(r => r.json()),
+        ]);
+        Object.assign(allStats, statsRes);
+        Object.assign(allChanges, changeRes);
+      } catch (e) { console.warn('统计数据加载失败', e); }
+
+      for (const region of ['ninger', 'shuangbai']) {
+        try {
+          const [metrics, features, conf] = await Promise.all([
+            fetch(`${API_BASE}/api/model/metrics/${region}`).then(r => r.json()),
+            fetch(`${API_BASE}/api/model/feature_importance/${region}`).then(r => r.json()),
+            fetch(`${API_BASE}/api/stats/confidence/${region}`).then(r => r.json()).catch(() => null),
+          ]);
+          modelMetrics[region] = metrics;
+          featureImportance[region] = features;
+          if (conf) confidenceStats[region] = conf;
+        } catch (e) { console.warn(`${region} 模型数据加载失败`, e); }
+      }
+    }
+
+    // ===== 天地图 =====
+    const TIANDITU_KEY = 'd6109d4ddd40763ced04bdd659f71765';
+    const TIANDITU_APPROVAL = 'GS（2025）1508号';
+    const TIANDITU_LAYERS = {
+      img: `https://t{s}.tianditu.gov.cn/img_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILECOL={x}&TILEROW={y}&TILEMATRIX={z}&tk=${TIANDITU_KEY}`,
+      cia: `https://t{s}.tianditu.gov.cn/cia_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cia&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILECOL={x}&TILEROW={y}&TILEMATRIX={z}&tk=${TIANDITU_KEY}`,
+      vec: `https://t{s}.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILECOL={x}&TILEROW={y}&TILEMATRIX={z}&tk=${TIANDITU_KEY}`,
+      cva: `https://t{s}.tianditu.gov.cn/cva_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cva&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILECOL={x}&TILEROW={y}&TILEMATRIX={z}&tk=${TIANDITU_KEY}`,
+    };
+
+    function createTianDiTuLayer(type) {
+      const subdomains = ['0','1','2','3','4','5','6','7'];
+      return L.tileLayer(TIANDITU_LAYERS[type], {
+        subdomains, maxZoom: 18,
+        attribution: `&copy; 天地图 ${TIANDITU_APPROVAL}`
+      });
+    }
+
+    function createMapInstance(containerId) {
+      const map = L.map(containerId, {
+        center: [23.2, 101.2], zoom: 11, zoomControl: true, attributionControl: true
+      });
+      const baseImg = createTianDiTuLayer('img').addTo(map);
+      const baseCia = createTianDiTuLayer('cia').addTo(map);
+      map._tianditu_base = baseImg;
+      map._tianditu_label = baseCia;
+      return map;
+    }
+
+    function switchBaseMap(map, type) {
+      if (!map) return;
+      if (map._tianditu_base) { map.removeLayer(map._tianditu_base); map._tianditu_base = null; }
+      if (map._tianditu_label) { map.removeLayer(map._tianditu_label); map._tianditu_label = null; }
+      if (map._dark_base) { map.removeLayer(map._dark_base); map._dark_base = null; }
+
+      if (type === 'satellite') {
+        map._tianditu_base = createTianDiTuLayer('img').addTo(map);
+        map._tianditu_label = createTianDiTuLayer('cia').addTo(map);
+      } else if (type === 'vector') {
+        map._tianditu_base = createTianDiTuLayer('vec').addTo(map);
+        map._tianditu_label = createTianDiTuLayer('cva').addTo(map);
+      } else {
+        map._dark_base = L.tileLayer(DARK_BASE_URL, {
+          attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18
+        }).addTo(map);
+      }
+      const overlays = [];
+      map.eachLayer(l => { if (l instanceof L.ImageOverlay) overlays.push(l); });
+      overlays.forEach(l => { l.bringToFront(); });
+    }
+
+    async function onBaseMapChange(type) {
+      [mapSingle, mapLeft, mapRight].forEach(m => switchBaseMap(m, type));
+    }
+
+    // ===== 地图叠加 =====
+    async function addOverlay(map, region, year, type='classification') {
+      let imgUrl, boundsUrl;
+      if (type === 'classification') {
+        imgUrl = `${API_BASE}/api/map/image/${region}/${year}`;
+        boundsUrl = `${API_BASE}/api/map/bounds/${region}/${year}`;
+      } else if (type === 'change') {
+        // 变化检测: 2019→2023, 2023→2024, 2024→2025, 2025→(2023→2025)
+        let y1, y2;
+        if (year === 2019) { y1 = 2019; y2 = 2023; }
+        else if (year === 2023) { y1 = 2023; y2 = 2024; }
+        else if (year === 2024) { y1 = 2024; y2 = 2025; }
+        else { y1 = 2023; y2 = 2025; } // 2025年显示2023→2025的变化
+        imgUrl = `${API_BASE}/api/map/change/${region}/${y1}/${y2}`;
+        boundsUrl = `${API_BASE}/api/map/change_bounds/${region}/${y1}/${y2}`;
+      } else if (type === 'confidence') {
+        imgUrl = `${API_BASE}/api/map/confidence/${region}`;
+        boundsUrl = `${API_BASE}/api/map/confidence_bounds/${region}`;
+      }
+      try {
+        const bounds = await fetch(boundsUrl).then(r => r.json());
+        const b = [[bounds.south, bounds.west], [bounds.north, bounds.east]];
+        const overlay = L.imageOverlay(imgUrl, b, { opacity: 0.85 }).addTo(map);
+        map.fitBounds(b, { padding: [20, 20] });
+        return overlay;
+      } catch (e) { console.warn('加载叠加层失败', e); return null; }
+    }
+
+    async function addBoundary(map, region) {
+      try {
+        const geojson = await fetch(`${API_BASE}/api/boundary/${region}`).then(r => r.json());
+        return L.geoJSON(geojson, {
+          style: { color: '#4ade80', weight: 2, fillOpacity: 0.03, dashArray: '6,4' }
+        }).addTo(map);
+      } catch (e) { return null; }
+    }
+
+    function setupMapClick(map) {
+      map.on('click', async (e) => {
+        try {
+          const res = await fetch(`${API_BASE}/api/query/point`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lng: e.latlng.lng, lat: e.latlng.lat, region: currentRegion.value, year: currentYear.value })
+          }).then(r => r.json());
+          queryResult.value = res;
+        } catch (err) { console.warn('点查询失败', err); }
+      });
+    }
+
+    // ===== 地图初始化 =====
+    async function initSingleMap() {
+      await nextTick();
+      if (mapSingle) { mapSingle.remove(); mapSingle = null; }
+      mapSingle = createMapInstance('map-single');
+      // 恢复底图类型
+      if (baseMapType.value !== 'satellite') switchBaseMap(mapSingle, baseMapType.value);
+      overlaySingle = await addOverlay(mapSingle, currentRegion.value, currentYear.value, mapLayer.value);
+      if (showBoundary.value) boundaryLayer = await addBoundary(mapSingle, currentRegion.value);
+      setupMapClick(mapSingle);
+    }
+
+    async function initSplitMaps() {
+      await nextTick();
+      if (mapLeft) { mapLeft.remove(); mapLeft = null; }
+      if (mapRight) { mapRight.remove(); mapRight = null; }
+      mapLeft = createMapInstance('map-left');
+      mapRight = createMapInstance('map-right');
+      if (baseMapType.value !== 'satellite') {
+        switchBaseMap(mapLeft, baseMapType.value);
+        switchBaseMap(mapRight, baseMapType.value);
+      }
+
+      overlayLeft = await addOverlay(mapLeft, currentRegion.value, currentYear.value, mapLayer.value);
+      overlayRight = await addOverlay(mapRight, currentRegion.value, splitYear2.value, mapLayer.value);
+
+      if (showBoundary.value) {
+        await addBoundary(mapLeft, currentRegion.value);
+        await addBoundary(mapRight, currentRegion.value);
+      }
+
+      setupMapClick(mapLeft);
+
+      // 同步
+      let syncing = false;
+      mapLeft.on('moveend', () => {
+        if (syncing || !splitMode.value) return;
+        syncing = true;
+        if (mapRight) mapRight.setView(mapLeft.getCenter(), mapLeft.getZoom());
+        setTimeout(() => syncing = false, 50);
+      });
+      mapRight.on('moveend', () => {
+        if (syncing || !splitMode.value) return;
+        syncing = true;
+        if (mapLeft) mapLeft.setView(mapRight.getCenter(), mapRight.getZoom());
+        setTimeout(() => syncing = false, 50);
+      });
+
+      // 分屏拖拽
+      setupSplitDrag();
+    }
+
+    function setupSplitDrag() {
+      nextTick(() => {
+        const handle = document.querySelector('.split-handle');
+        const splitContainer = document.querySelector('.map-split');
+        if (!handle || !splitContainer) return;
+
+        let isDragging = false;
+        const onMouseDown = (e) => { isDragging = true; e.preventDefault(); };
+        const onMouseMove = (e) => {
+          if (!isDragging) return;
+          const rect = splitContainer.getBoundingClientRect();
+          const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+          const pct = Math.max(20, Math.min(80, (x / rect.width) * 100));
+          const panels = splitContainer.querySelectorAll('.map-panel');
+          if (panels[0]) panels[0].style.flex = `0 0 ${pct}%`;
+          if (panels[1]) panels[1].style.flex = `1`;
+          if (mapLeft) mapLeft.invalidateSize();
+          if (mapRight) mapRight.invalidateSize();
+        };
+        const onMouseUp = () => { isDragging = false; };
+
+        handle.addEventListener('mousedown', onMouseDown);
+        handle.addEventListener('touchstart', onMouseDown, { passive: false });
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('touchmove', onMouseMove, { passive: false });
+        document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('touchend', onMouseUp);
+      });
+    }
+
+    async function updateMap() {
+      if (splitMode.value) {
+        await initSplitMaps();
+      } else {
+        await initSingleMap();
+      }
+    }
+
+    function switchToMap() {
+      currentPage.value = 'map';
+      nextTick(() => updateMap());
+    }
+
+    function switchToStats() {
+      currentPage.value = 'stats';
+      nextTick(() => setTimeout(() => initCharts(), 100));
+    }
+
+    function switchToModel() {
+      currentPage.value = 'model';
+      nextTick(() => setTimeout(() => initModelCharts(), 100));
+    }
+
+    async function onRegionChange() { await updateMap(); }
+    async function onYearChange() { await updateMap(); }
+    async function onSplitChange() { await updateMap(); }
+    async function onLayerChange() { await updateMap(); }
+    async function updateRightMap() {
+      if (mapRight) {
+        if (overlayRight) mapRight.removeLayer(overlayRight);
+        overlayRight = await addOverlay(mapRight, currentRegion.value, splitYear2.value, mapLayer.value);
+      }
+    }
+    async function toggleBoundary() { await updateMap(); }
+
+    // ===== 统计图表 =====
+    function initCharts() {
+      nextTick(() => {
+        setTimeout(() => {
+          initPieChart();
+          initBarChart();
+          initTrendChart();
+          initFeatureChart();
+          initCompareChart();
+        }, 100);
+      });
+    }
+
+    function initPieChart() {
+      const el = document.getElementById('chart-pie');
+      if (!el) return;
+      const chart = echarts.init(el, 'dark');
+      const region = statsRegion.value;
+      const stats = allStats[region];
+      if (!stats || !stats.length) return;
+      const d = stats[0];
+      const data = [];
+      const colors = ['#e74c3c', '#f39c12', '#27ae60'];
+      const labels = ['低碳密度', '中碳密度', '高碳密度'];
+      ['Level1','Level2','Level3'].forEach((k,i) => {
+        if (d.class_stats[k]) data.push({ value: parseFloat(d.class_stats[k].area_km2.toFixed(1)), name: labels[i], itemStyle: { color: colors[i] } });
+      });
+      chart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'item', formatter: '{b}: {c} km² ({d}%)' },
+        series: [{
+          type: 'pie', radius: ['40%','72%'], center: ['50%','50%'], data,
+          label: { color: '#e2e8f0', formatter: '{b}\n{d}%' },
+          emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.5)' } }
+        }]
+      });
+    }
+
+    function initBarChart() {
+      const el = document.getElementById('chart-bar');
+      if (!el) return;
+      const chart = echarts.init(el, 'dark');
+      const region = statsRegion.value;
+      const stats = allStats[region];
+      if (!stats || !stats.length) return;
+      const years = stats.map(s => s.year);
+      const series = [
+        { name: '低碳密度', type: 'bar', stack: 'total', data: stats.map(s => parseFloat((s.class_stats.Level1?.area_km2 || 0).toFixed(1))), itemStyle: { color: '#e74c3c' } },
+        { name: '中碳密度', type: 'bar', stack: 'total', data: stats.map(s => parseFloat((s.class_stats.Level2?.area_km2 || 0).toFixed(1))), itemStyle: { color: '#f39c12' } },
+        { name: '高碳密度', type: 'bar', stack: 'total', data: stats.map(s => parseFloat((s.class_stats.Level3?.area_km2 || 0).toFixed(1))), itemStyle: { color: '#27ae60' } },
+      ];
+      chart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { textStyle: { color: '#94a3b8' } },
+        xAxis: { type: 'category', data: years, axisLabel: { color: '#94a3b8' } },
+        yAxis: { type: 'value', name: '面积 (km²)', axisLabel: { color: '#94a3b8' }, nameTextStyle: { color: '#94a3b8' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+        series
+      });
+    }
+
+    function initTrendChart() {
+      const el = document.getElementById('chart-trend');
+      if (!el) return;
+      const chart = echarts.init(el, 'dark');
+      const region = statsRegion.value;
+      const changes = allChanges[region];
+      if (!changes || !changes.length) return;
+      const pairs = changes.map(c => `${c.year1}→${c.year2}`);
+      chart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis' },
+        legend: { textStyle: { color: '#94a3b8' } },
+        xAxis: { type: 'category', data: pairs, axisLabel: { color: '#94a3b8' } },
+        yAxis: { type: 'value', name: '占比 (%)', axisLabel: { color: '#94a3b8' }, nameTextStyle: { color: '#94a3b8' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+        series: [
+          { name: '等级提升', type: 'line', data: changes.map(c => c.increase_pct), itemStyle: { color: '#2ecc71' }, areaStyle: { color: 'rgba(46,204,113,0.1)' } },
+          { name: '等级下降', type: 'line', data: changes.map(c => c.decrease_pct), itemStyle: { color: '#e74c3c' }, areaStyle: { color: 'rgba(231,76,60,0.1)' } },
+          { name: '保持不变', type: 'line', data: changes.map(c => c.unchanged_pct), itemStyle: { color: '#bdc3c7' }, areaStyle: { color: 'rgba(189,195,199,0.05)' } },
+        ]
+      });
+    }
+
+    function initFeatureChart() {
+      const el = document.getElementById('chart-features');
+      if (!el) return;
+      const region = statsRegion.value;
+      const features = featureImportance[region];
+      if (!features || !features.length) return;
+      // 根据特征数量动态调整高度
+      const barHeight = 22;
+      const minHeight = 320;
+      const dynamicHeight = Math.max(minHeight, features.length * barHeight + 40);
+      el.style.height = dynamicHeight + 'px';
+      const chart = echarts.init(el, 'dark');
+      const names = features.map(f => featureDisplayName(f.feature)).reverse();
+      const values = features.map(f => (f.importance * 100).toFixed(2)).reverse();
+      chart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: 120 },
+        xAxis: { type: 'value', name: '重要性 (%)', axisLabel: { color: '#94a3b8' }, nameTextStyle: { color: '#94a3b8' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+        yAxis: { type: 'category', data: names, axisLabel: { color: '#94a3b8', fontSize: 12 } },
+        series: [{
+          type: 'bar', data: values,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              { offset: 0, color: '#0d7377' }, { offset: 1, color: '#4ade80' }
+            ])
+          },
+          barWidth: 14,
+        }]
+      });
+    }
+
+    function initCompareChart() {
+      const el = document.getElementById('chart-compare');
+      if (!el) return;
+      const chart = echarts.init(el, 'dark');
+      const years = [2019, 2023, 2024, 2025];
+      const regions = ['ninger', 'shuangbai'];
+      const regionNames = { ninger: '宁洱县', shuangbai: '双柏县' };
+      const levels = ['Level1', 'Level2', 'Level3'];
+      const levelNames = { Level1: '低碳密度', Level2: '中碳密度', Level3: '高碳密度' };
+      const levelColors = { Level1: '#e74c3c', Level2: '#f39c12', Level3: '#27ae60' };
+
+      const series = [];
+      regions.forEach(region => {
+        levels.forEach(level => {
+          const data = years.map(year => {
+            const rs = allStats[region];
+            if (!rs) return 0;
+            const yearData = rs.find(s => s.year === year);
+            return yearData ? parseFloat((yearData.class_stats[level]?.area_km2 || 0).toFixed(1)) : 0;
+          });
+          series.push({
+            name: `${regionNames[region]}-${levelNames[level]}`,
+            type: 'bar',
+            data,
+            itemStyle: { color: levelColors[level], opacity: region === 'ninger' ? 1 : 0.6 }
+          });
+        });
+      });
+
+      chart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { textStyle: { color: '#94a3b8', fontSize: 11 }, type: 'scroll' },
+        xAxis: { type: 'category', data: years, axisLabel: { color: '#94a3b8' } },
+        yAxis: { type: 'value', name: '面积 (km²)', axisLabel: { color: '#94a3b8' }, nameTextStyle: { color: '#94a3b8' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+        series
+      });
+    }
+
+    // ===== 模型详情图表 =====
+    function initModelCharts() {
+      nextTick(() => {
+        setTimeout(() => {
+          initModelFeatureChart();
+          initConfusionChart();
+          initCVChart();
+        }, 100);
+      });
+    }
+
+    function initModelFeatureChart() {
+      const el = document.getElementById('model-feature-chart');
+      if (!el) return;
+      const region = modelRegion.value;
+      const features = featureImportance[region];
+      if (!features || !features.length) return;
+      // 根据特征数量动态调整高度
+      const barHeight = 24;
+      const minHeight = 340;
+      const dynamicHeight = Math.max(minHeight, features.length * barHeight + 50);
+      el.style.height = dynamicHeight + 'px';
+      const chart = echarts.init(el, 'dark');
+      const names = features.map(f => featureDisplayName(f.feature)).reverse();
+      const values = features.map(f => (f.importance * 100).toFixed(2)).reverse();
+      chart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: 130 },
+        xAxis: { type: 'value', name: '重要性 (%)', axisLabel: { color: '#94a3b8' }, nameTextStyle: { color: '#94a3b8' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+        yAxis: { type: 'category', data: names, axisLabel: { color: '#e2e8f0', fontSize: 12 } },
+        series: [{
+          type: 'bar', data: values,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              { offset: 0, color: '#0d7377' }, { offset: 1, color: '#4ade80' }
+            ])
+          },
+          barWidth: 16,
+          label: { show: true, position: 'right', color: '#94a3b8', fontSize: 11, formatter: '{c}%' }
+        }]
+      });
+    }
+
+    function initConfusionChart() {
+      const el = document.getElementById('model-confusion-chart');
+      if (!el) return;
+      const chart = echarts.init(el, 'dark');
+      const region = modelRegion.value;
+      const metrics = modelMetrics[region];
+      if (!metrics || !metrics.confusion_matrix) return;
+
+      const classes = ['低碳密度', '中碳密度', '高碳密度'];
+      const matrix = metrics.confusion_matrix;
+      const maxVal = Math.max(...matrix.flat());
+
+      const data = [];
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          data.push([j, i, matrix[i][j]]);
+        }
+      }
+
+      chart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: {
+          formatter: (p) => `真实: ${classes[p.data[1]]}<br/>预测: ${classes[p.data[0]]}<br/>数量: ${p.data[2]}`
+        },
+        grid: { left: 100, right: 60, top: 30, bottom: 60 },
+        xAxis: { type: 'category', data: classes, axisLabel: { color: '#94a3b8' }, name: '预测类别', nameTextStyle: { color: '#94a3b8' }, splitArea: { show: true, areaStyle: { color: ['rgba(30,41,59,0.5)', 'rgba(26,39,66,0.5)'] } } },
+        yAxis: { type: 'category', data: classes, axisLabel: { color: '#94a3b8' }, name: '真实类别', nameTextStyle: { color: '#94a3b8' } },
+        visualMap: {
+          min: 0, max: maxVal, calculable: true, orient: 'vertical', right: 0, top: 'center',
+          inRange: { color: ['#1e293b', '#0d7377', '#4ade80'] },
+          textStyle: { color: '#94a3b8' }
+        },
+        series: [{
+          type: 'heatmap', data: data,
+          label: { show: true, color: '#e2e8f0', fontSize: 13, fontWeight: 'bold' },
+          emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.5)' } }
+        }]
+      });
+    }
+
+    function initCVChart() {
+      const el = document.getElementById('model-cv-chart');
+      if (!el) return;
+      const chart = echarts.init(el, 'dark');
+      const region = modelRegion.value;
+      const metrics = modelMetrics[region];
+      if (!metrics || !metrics.cv_oa_folds) return;
+
+      const folds = metrics.cv_oa_folds.map((_, i) => `Fold ${i + 1}`);
+      const oaValues = metrics.cv_oa_folds.map(v => (v * 100).toFixed(2));
+      const meanLine = (metrics.cv_oa_mean * 100).toFixed(1);
+
+      chart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis', formatter: (p) => `${p[0].name}<br/>OA: ${p[0].value}%` },
+        grid: { left: 60, right: 30, top: 50, bottom: 40 },
+        xAxis: { type: 'category', data: folds, axisLabel: { color: '#94a3b8' } },
+        yAxis: {
+          type: 'value', name: 'OA (%)', min: Math.floor(Math.min(...metrics.cv_oa_folds) * 100) - 2,
+          max: Math.ceil(Math.max(...metrics.cv_oa_folds) * 100) + 2,
+          axisLabel: { color: '#94a3b8' }, nameTextStyle: { color: '#94a3b8' },
+          splitLine: { lineStyle: { color: '#1e293b' } }
+        },
+        series: [
+          {
+            type: 'bar', data: oaValues,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#4ade80' }, { offset: 1, color: '#0d7377' }
+              ])
+            },
+            barWidth: 40,
+            label: { show: true, position: 'top', color: '#4ade80', fontWeight: 'bold', formatter: '{c}%' }
+          },
+          {
+            type: 'line', markLine: {
+              data: [{ yAxis: meanLine, name: `均值 ${meanLine}%` }],
+              lineStyle: { color: '#f39c12', type: 'dashed', width: 2 },
+              label: { color: '#f39c12', formatter: `均值: {c}%` }
+            }
+          }
+        ]
+      });
+    }
+
+    // ===== AI 助手 =====
+
+    // 简易 Markdown 渲染器
+    function renderMarkdown(text) {
+      if (!text) return '';
+      let html = text;
+      // 代码块
+      html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+      // 行内代码
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+      // 标题
+      html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+      html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      // 加粗
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      // 斜体
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      // 引用
+      html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+      // 无序列表
+      html = html.replace(/^[-*] (.+)$/gm, '<li>$1</li>');
+      html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+      // 有序列表
+      html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+      // 简单表格
+      html = html.replace(/^\|(.+)\|$/gm, (match) => {
+        const cells = match.split('|').filter(c => c.trim());
+        if (cells.every(c => /^[-:\s]+$/.test(c.trim()))) return ''; // 分隔行
+        const tag = cells.length > 0 && html.indexOf(match) < html.indexOf('<tr') ? 'th' : 'td';
+        return '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+      });
+      html = html.replace(/(<tr>.*<\/tr>\n?)+/g, '<table>$&</table>');
+      // 段落（双换行）
+      html = html.replace(/\n\n/g, '</p><p>');
+      // 单换行
+      html = html.replace(/\n/g, '<br/>');
+      // 包裹段落
+      html = '<p>' + html + '</p>';
+      // 清理空段落
+      html = html.replace(/<p>\s*<\/p>/g, '');
+      html = html.replace(/<p>\s*(<h[34]>)/g, '$1');
+      html = html.replace(/(<\/h[34]>)\s*<\/p>/g, '$1');
+      html = html.replace(/<p>\s*(<pre>)/g, '$1');
+      html = html.replace(/(<\/pre>)\s*<\/p>/g, '$1');
+      html = html.replace(/<p>\s*(<ul>)/g, '$1');
+      html = html.replace(/(<\/ul>)\s*<\/p>/g, '$1');
+      html = html.replace(/<p>\s*(<table>)/g, '$1');
+      html = html.replace(/(<\/table>)\s*<\/p>/g, '$1');
+      html = html.replace(/<p>\s*(<blockquote>)/g, '$1');
+      html = html.replace(/(<\/blockquote>)\s*<\/p>/g, '$1');
+      return html;
+    }
+
+    function aiScrollToBottom() {
+      nextTick(() => {
+        const el = document.querySelector('.ai-messages');
+        if (el) el.scrollTop = el.scrollHeight;
+      });
+    }
+
+    async function aiSend() {
+      const text = aiInput.value.trim();
+      if (!text || aiStreaming.value) return;
+
+      aiInput.value = '';
+      // 添加用户消息
+      aiMessages.value.push({ role: 'user', content: text, rendered: text });
+      aiScrollToBottom();
+
+      // 添加空的 assistant 消息
+      const msgIdx = aiMessages.value.length;
+      aiMessages.value.push({ role: 'assistant', content: '', rendered: '' });
+      aiStreaming.value = true;
+      aiScrollToBottom();
+
+      try {
+        // 构建请求体（发送最近20条消息）
+        const history = aiMessages.value.slice(-21, -1).map(m => ({ role: m.role, content: m.content }));
+
+        const response = await fetch(`${API_BASE}/api/chat/stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: history,
+            region: currentRegion.value,
+            year: currentYear.value
+          })
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.detail || '请求失败');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6).trim();
+            if (data === '[DONE]') break;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.error) {
+                aiMessages.value[msgIdx].content += `\n\n⚠️ 错误: ${parsed.error}`;
+                aiMessages.value[msgIdx].rendered = renderMarkdown(aiMessages.value[msgIdx].content);
+              } else if (parsed.content) {
+                aiMessages.value[msgIdx].content += parsed.content;
+                aiMessages.value[msgIdx].rendered = renderMarkdown(aiMessages.value[msgIdx].content);
+              }
+            } catch (e) { /* ignore parse errors */ }
+          }
+          aiScrollToBottom();
+        }
+
+      } catch (err) {
+        aiMessages.value[msgIdx].content = `⚠️ 连接失败: ${err.message}`;
+        aiMessages.value[msgIdx].rendered = renderMarkdown(aiMessages.value[msgIdx].content);
+      } finally {
+        aiStreaming.value = false;
+        aiScrollToBottom();
+      }
+    }
+
+    function aiSendQuick(text) {
+      aiInput.value = text;
+      aiSend();
+    }
+
+    onMounted(async () => {
+      await fetchData();
+    });
+
+    return {
+      currentPage, currentRegion, currentYear, splitMode, splitYear2,
+      mapLayer, showBoundary, statsRegion, modelRegion, queryResult, baseMapType,
+      modelMetrics, confidenceStats, allStats, allChanges, featureImportance,
+      overviewStats,
+      classColor, classLabel, confidenceBadgeClass, featureDisplayName,
+      switchToMap, switchToStats, switchToModel,
+      onRegionChange, onYearChange, onSplitChange,
+      onLayerChange, updateRightMap, toggleBoundary, onBaseMapChange,
+      initCharts, initModelCharts,
+      // AI 助手
+      aiPanelOpen, aiMessages, aiInput, aiStreaming, aiMessagesRef,
+      aiSend, aiSendQuick,
+    };
+  }
+});
+
+app.use(ElementPlus);
+app.mount('#app');
+</script>
+</body>
+</html>

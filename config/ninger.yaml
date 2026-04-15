@@ -1,0 +1,47 @@
+# 宁洱县研究区配置
+region_id: ninger
+region_name: 宁洱县
+
+# 坐标系与分辨率
+crs: EPSG:32647
+resolution: 30.0
+
+# 原始数据路径 (相对于项目根目录，{year}占位符在加载时替换)
+boundary: data/ninger/raw/boundary/宁洱县_32647.geojson
+dem: data/shared/dem/YUNNAN_dem_mosaic.tif
+agb: data/ninger/raw/agb/AGB_{year}_ninger.tif
+landsat_dir: data/ninger/{year}/raw/landsat
+
+# CLCD森林掩膜数据（{year}占位符）
+clcd: data/shared/clcd/CLCD_v01_{year}_albert.tif
+
+# AGB参数
+agb_nodata: 0
+agb_max_valid: 500
+n_classes: 3
+
+# RF分类参数
+rf_params:
+  n_estimators: 300
+  min_samples_split: 10
+  min_samples_leaf: 8
+  max_features: 0.7
+  max_depth: 30
+
+# 特征筛选（为空则使用全部28特征）
+selected_features: []
+
+# CV折数（5折已足够评估稳定性）
+cv_folds: 5
+
+# 采样参数
+sampling:
+  min_spacing: 5
+  fraction: 0.15
+  seed: 42
+
+# 样本质量筛选参数 (宁缺毋滥)
+quality_filter:
+  slope_max: 30        # 坡度阈值(度)，超过则剔除 (PKU-AGB在陡坡精度显著下降)
+  ndvi_min: 0.3        # NDVI阈值，低于则剔除 (非森林/稀疏植被区域不可靠)
+  per_class_target: 2000  # 分层采样每级目标样本数，0=不限制(按fraction比例)

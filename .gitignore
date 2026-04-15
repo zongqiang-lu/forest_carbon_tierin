@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# 虚拟环境
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 数据与输出 (体积大，不上传)
+data/
+output/
+
+# 凭据 (敏感信息)
+config/credentials/
+
+# Web 生成数据
+web/backend/data/stats/
+web/backend/data/tiles/
+web/backend/data/changes/
+web/backend/data/wgs84/
+web/backend/data/*.png
+web/backend/data/*.tif
+web/backend/data/*.json
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志
+*.log
