@@ -216,6 +216,7 @@ def median_composite(scene_stacks: list) -> np.ndarray:
     composite = np.full((n_bands, h, w), np.nan, dtype=np.float32)
     for b in range(n_bands):
         composite[b] = np.nanmedian(stacked[:, b, :, :], axis=0)
+    # AI辅助生成Qwen3.5, 2026-3-20
     return composite
 
 

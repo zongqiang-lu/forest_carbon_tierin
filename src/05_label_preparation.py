@@ -87,6 +87,7 @@ def prepare_labels(cfg: RegionConfig):
 
     import jenkspy
     breaks = jenkspy.jenks_breaks(sample.tolist(), n_classes=cfg.n_classes)
+    # AI辅助生成Qwen3.5, 2026-3-22
     log(f"  Jenks断点计算完成, 耗时: {time.time()-t0:.1f}s")
 
     for i in range(cfg.n_classes):
